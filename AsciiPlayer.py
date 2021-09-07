@@ -1,4 +1,4 @@
-from os import name, system, path, remove
+from os import name, system, path, remove, rmdir
 from PIL import Image
 from pygame import mixer
 from threading import Thread
@@ -19,7 +19,7 @@ class AsciiPlayer:
 
     @property
     def height(self):
-        return self.height
+        return self._height
     @height.setter
     def height(self, height):
         self._height = height
@@ -68,13 +68,16 @@ class AsciiPlayer:
     def obtener_frames(self) -> None:
         capturas = cv.VideoCapture(self._path)
         nFrame = 0
+        sys.stdout.write(f'Extrayendo los frames de: {self._path}\n')
         progreso = progressbar.ProgressBar(max_value=self.contar_frames())
         progreso.start()
         while(True):
             success, frame = capturas.read()
             if success:
-                if self.verificar_archivos(f'./files/output/frame_{nFrame}.jpg') == False:
-                    cv.imwrite(f'./files/output/frame_{nFrame}.jpg', frame)
+                """ if self.verificar_archivos(f'./files/output/frame_{nFrame}.jpg') == False:
+                    cv.imwrite(f'./files/output/frame_{nFrame}.jpg', frame) """
+                if self.verificar_archivos(path.join('files', 'output', 'frame_%s.jpg'%nFrame)) == False:
+                    cv.imwrite(path.join('files', 'output', 'frame_%s.jpg'%nFrame), frame)
             else:
                 break
             nFrame += 1
@@ -85,10 +88,13 @@ class AsciiPlayer:
         capturas.release()
 
     def obtener_ascii(self) -> None:
-        if self.verificar_archivos('./files/frames.txt'):
+        if self.verificar_archivos(path.join('files', 'frames.txt')):
             return
         ASCII_CHARS = [' ', ':', '!', '*', '%', '$', 'S', 'O', '&', '#', '@']
 
+        sys.stdout.write(f'Escribiendo el archivo ASCII\n')
+        progreso = progressbar.ProgressBar(max_value=self.contar_frames())
+        progreso.start()
         for i in range(self.contar_frames()):
             try:
                 frame = Image.open('./files/output/frame_%s.jpg'%i)
@@ -112,8 +118,11 @@ class AsciiPlayer:
                 except Exception as e:
                     sys.stdout.write(f'Ocurrio un error al abrir el archivo: {e}')
 
+                progreso.update(i)
+
             except Exception as e:
                 sys.stdout.write(f'Ocurrio un error al formar la imagen ASCII: {e}')
+        progreso.finish()
 
     def recuperar_txt(self) -> None:
         self._ascii_frames = [[]*k for k in range(self.contar_frames())]
@@ -134,7 +143,15 @@ class AsciiPlayer:
             self.obtener_ascii()
 
     def eliminar_archivos(self):
-        remove(path.join('files'))
+        try:
+            remove(path.join('files', 'audio.wav'))
+            remove(path.join('files', 'frames.txt'))
+            for i in range(self.contar_frames()):
+                remove(path.join('files', 'output', 'frame_%s.jpg'%(i)))
+            rmdir(path.join('files', 'output'))
+            rmdir('files')
+        except Exception as e:
+            sys.stdout.write(f'Error al eliminar los archivos: {e}')
 
     def reproducir_cancion(self) -> None:
         mixer.pre_init(frequency=44100,size= -16,channels= 2,buffer= 2048)
@@ -164,6 +181,8 @@ def main():
     while True:
         print('ASCII Video Player'.center(50, '='))
         ruta = input("Ingresa la ruta del archivo (Preferiblemente en root):").strip()
+        if ruta == '':
+            ruta = 'bad_apple.mp4'
         try:
             with open(ruta, 'r'):
                 video = AsciiPlayer(ruta)
@@ -173,10 +192,14 @@ def main():
             input()
     
     while True:
+        system('cls' if name == 'nt' else 'clear')
+        print('ASCII Video Player'.center(50, '='))
+        print(f'Archivo abierto: {ruta}')
         print('[1] Preparar archivos')
         print('[2] Reproducir')
         print('[3] Eliminar archivos')
-        print('[4] Salir')
+        print('[4] Opciones avanzadas')
+        print('[5] Salir')
         opcion = input('>')
 
         if opcion == '1':
@@ -184,19 +207,40 @@ def main():
             video.preparar_archivos()
 
         elif opcion == '2':
-            video.recuperar_txt()
-            video.player()
+            if video.verificar_archivos(path.join('files', 'frames.txt')) and video.verificar_archivos(path.join('files', 'audio.wav')):
+                video.recuperar_txt()
+                video.player()
 
         elif opcion == '3':
             print('¿Eliminar archivos? [y/n]')
             opcion = input()
             if opcion == 'y' or opcion == 'Y':
-                pass
+                video.eliminar_archivos()
             elif opcion == 'n' or opcion == 'N':
                 pass
             else:
                 print('No valido')
+
         elif opcion == '4':
+            print('Opciones avanzadas')
+            print(f'[1] Cambiar Alto (Por defecto: {video.height})')
+            print(f'[2] Cambiar Ancho (Por defectoL {video.width})')
+            print('[3] Regresar')
+            opcion2 = input()
+            if opcion2 == '1':
+                video.height = int(input('Nuevo alto: '))
+            elif opcion2 == '2':
+                video.width = int(input('Nuevo ancho: '))
+            elif opcion2 == '3':
+                pass
+            else:
+                print('Opcion invalida')
+            print('Se removera el archivo de texto, vuelve a preparar los archivos')
+            try:
+                remove(path.join('files', 'frames.txt'))
+            except Exception as e:
+                print(f'Error: {e}')
+        elif opcion == '5':
             break
         else:
             print('Opcion invalida!')
