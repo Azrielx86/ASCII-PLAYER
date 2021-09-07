@@ -1,12 +1,12 @@
-import moviepy.editor as mp
-import sys
-from os import name, system
-import cv2 as cv
+from os import name, system, path
 from PIL import Image
-import progressbar
-import fpstimer
 from pygame import mixer
 from threading import Thread
+import moviepy.editor as mp
+import cv2 as cv
+import progressbar
+import fpstimer
+import sys
 
 class AsciiPlayer:
     def __init__(self, path) -> None:
@@ -15,6 +15,20 @@ class AsciiPlayer:
         self._ascii_frames = []
         self._height = 60
         self._width = 170
+
+    @property
+    def height(self):
+        return self.height
+    @height.setter
+    def height(self, height):
+        self._height = height
+
+    @property
+    def width(self):
+        return self._width
+    @width.setter
+    def width(self, width):
+        self._width = width
 
     @classmethod
     def preparar_directorios(cls):
@@ -31,11 +45,11 @@ class AsciiPlayer:
             return False
 
     def convertir_audio(self) -> None:
-        if self.verificar_archivos('./files/bad_apple.mp3'):
+        if self.verificar_archivos('./files/bad_apple.wav'):
             sys.stdout.write('El archivo de audio ya existe')
         else:
             audio = mp.VideoFileClip(self._path)
-            audio.audio.write_audiofile('./files/bad_apple.mp3')
+            audio.audio.write_audiofile('./files/bad_apple.wav', bitrate='320k')
 
     def contar_frames(self) -> int:
         video = cv.VideoCapture(self._path)
@@ -88,7 +102,7 @@ class AsciiPlayer:
                 self._ascii_frames.append(img_ascii)
 
                 try:
-                    with open('./files/frames.txt', 'a') as txt:
+                    with open(path.join("files", "frames.txt"), 'a') as txt:
                         txt.write(img_ascii)
                         txt.write('\n')
                 except Exception as e:
@@ -100,7 +114,7 @@ class AsciiPlayer:
     def recuperar_txt(self) -> None:
         self._ascii_frames = [[]*k for k in range(self.contar_frames())]
         try:
-            with open('./files/frames.txt', 'r') as frames:
+            with open(path.join("files", "frames.txt"), 'r') as frames:
                 for i in range(self.contar_frames()):
                     tmp = ''.join(frames.readline() for i in range(60))
                     self._ascii_frames[i] = tmp
@@ -108,8 +122,9 @@ class AsciiPlayer:
             sys.stdout.write(f'Ocurrio un error al abrir el archivo: {e}')
 
     def reproducir_cancion(self) -> None:
+        mixer.pre_init(frequency=44100,size= -16,channels= 2,buffer= 2048)
         mixer.init()
-        mixer.music.load("./files/bad_apple.mp3")
+        mixer.music.load(path.join("files", "bad_apple.wav"))
         mixer.music.play()
 
     def reproducir_frames(self) -> None:
@@ -131,14 +146,13 @@ class AsciiPlayer:
         
 
 if __name__ == '__main__':
-    ruta = str('./bad_apple.mp4')
+    #ruta = str('./bad_apple.mp4')
+    ruta = str('./lagtrain.mp4')
     BadApple = AsciiPlayer(ruta)
 
-    #BadApple.reproducir_cancion()
     BadApple.convertir_audio()
-    #BadApple.obtener_frames()
+    BadApple.obtener_frames()
     BadApple.obtener_ascii()
     BadApple.recuperar_txt()
-    BadApple.reproducir_frames()
     
-    #BadApple.player()
+    BadApple.player()
