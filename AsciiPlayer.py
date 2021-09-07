@@ -1,4 +1,3 @@
-from time import sleep, time
 import moviepy.editor as mp
 import sys
 from os import name, system, path
