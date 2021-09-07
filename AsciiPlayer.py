@@ -7,7 +7,7 @@ import cv2 as cv
 import progressbar
 import fpstimer
 import sys
-import playsound
+
 
 class AsciiPlayer:
     def __init__(self, path) -> None:
@@ -20,6 +20,7 @@ class AsciiPlayer:
     @property
     def height(self):
         return self._height
+
     @height.setter
     def height(self, height):
         self._height = height
@@ -27,19 +28,18 @@ class AsciiPlayer:
     @property
     def width(self):
         return self._width
+
     @width.setter
     def width(self, width):
         self._width = width
 
     @classmethod
     def preparar_directorios(cls):
-        """ if name == 'nt':
-            system('mkdir .\\files\\output')
+        if name == 'nt':
+            system('mkdir ' + path.join('files', 'output'))
         else:
-            system('mkdir ./files/output') """
-
-        system('mkdir ' + path.join('files', 'output'))
-
+            system('mkdir files')
+            system('mkdir files/output')
 
     def verificar_archivos(self, ruta: str) -> bool:
         try:
@@ -53,13 +53,14 @@ class AsciiPlayer:
             sys.stdout.write('El archivo de audio ya existe')
         else:
             audio = mp.VideoFileClip(self._path)
-            audio.audio.write_audiofile(path.join("files", "audio.wav"), bitrate='320k')
+            audio.audio.write_audiofile(
+                path.join("files", "audio.wav"), bitrate='320k')
 
     def contar_frames(self) -> int:
         video = cv.VideoCapture(self._path)
         nFrames = int(video.get(cv.CAP_PROP_FRAME_COUNT))
         return nFrames
-    
+
     def obtener_fps(self) -> float:
         video = cv.VideoCapture(self._path)
         fps = float(video.get(cv.CAP_PROP_FPS))
@@ -76,8 +77,9 @@ class AsciiPlayer:
             if success:
                 """ if self.verificar_archivos(f'./files/output/frame_{nFrame}.jpg') == False:
                     cv.imwrite(f'./files/output/frame_{nFrame}.jpg', frame) """
-                if self.verificar_archivos(path.join('files', 'output', 'frame_%s.jpg'%nFrame)) == False:
-                    cv.imwrite(path.join('files', 'output', 'frame_%s.jpg'%nFrame), frame)
+                if self.verificar_archivos(path.join('files', 'output', 'frame_%s.jpg' % nFrame)) == False:
+                    cv.imwrite(path.join('files', 'output',
+                               'frame_%s.jpg' % nFrame), frame)
             else:
                 break
             nFrame += 1
@@ -97,16 +99,16 @@ class AsciiPlayer:
         progreso.start()
         for i in range(self.contar_frames()):
             try:
-                frame = Image.open('./files/output/frame_%s.jpg'%i)
+                frame = Image.open('./files/output/frame_%s.jpg' % i)
                 frame = frame.resize(size=[self._width, self._height])
 
                 frame = frame.convert('L')
                 pixel_data = frame.getdata()
 
-                new_pixel = ''.join(ASCII_CHARS[pixel//25] for pixel in pixel_data)
+                new_pixel = ''.join(ASCII_CHARS[pixel//25]for pixel in pixel_data)
 
                 count_pixels = len(new_pixel)
-                img_ascii = [new_pixel[index: index + self._width] for index in range(0, count_pixels, self._width)]
+                img_ascii = [new_pixel[index: index + self._width]for index in range(0, count_pixels, self._width)]
                 img_ascii = '\n'.join(img_ascii)
 
                 self._ascii_frames.append(img_ascii)
@@ -121,7 +123,8 @@ class AsciiPlayer:
                 progreso.update(i)
 
             except Exception as e:
-                sys.stdout.write(f'Ocurrio un error al formar la imagen ASCII: {e}')
+                sys.stdout.write(
+                    f'Ocurrio un error al formar la imagen ASCII: {e}')
         progreso.finish()
 
     def recuperar_txt(self) -> None:
@@ -147,20 +150,20 @@ class AsciiPlayer:
             remove(path.join('files', 'audio.wav'))
             remove(path.join('files', 'frames.txt'))
             for i in range(self.contar_frames()):
-                remove(path.join('files', 'output', 'frame_%s.jpg'%(i)))
+                remove(path.join('files', 'output', 'frame_%s.jpg' % (i)))
             rmdir(path.join('files', 'output'))
             rmdir('files')
         except Exception as e:
             sys.stdout.write(f'Error al eliminar los archivos: {e}')
 
     def reproducir_cancion(self) -> None:
-        mixer.pre_init(frequency=44100,size= -16,channels= 2,buffer= 2048)
+        mixer.pre_init(frequency=44100, size=-16, channels=2, buffer=2048)
         mixer.init()
         mixer.music.load(path.join("files", "audio.wav"))
         mixer.music.play()
 
     def reproducir_frames(self) -> None:
-        system('mode %s, %s'%(self._width, self._height))
+        system('mode %s, %s' % (self._width, self._height))
         timer = fpstimer.FPSTimer(self.obtener_fps())
         for i in range(self.contar_frames()):
             sys.stdout.write(self._ascii_frames[i])
@@ -176,11 +179,13 @@ class AsciiPlayer:
         txt.join()
         audio.join()
 
+
 def main():
     system('cls' if name == 'nt' else 'clear')
     while True:
         print('ASCII Video Player'.center(50, '='))
-        ruta = input("Ingresa la ruta del archivo (Preferiblemente en root):").strip()
+        ruta = input(
+            "Ingresa la ruta del archivo (Preferiblemente en root):").strip()
         if ruta == '':
             ruta = 'bad_apple.mp4'
         try:
@@ -190,7 +195,7 @@ def main():
         except Exception as e:
             print(f'Ocurrio un error: {e}')
             input()
-    
+
     while True:
         system('cls' if name == 'nt' else 'clear')
         print('ASCII Video Player'.center(50, '='))
@@ -244,7 +249,7 @@ def main():
             break
         else:
             print('Opcion invalida!')
-        
+
 
 if __name__ == '__main__':
     main()
@@ -253,9 +258,9 @@ if __name__ == '__main__':
     #BadApple = AsciiPlayer(ruta)
     #BadApple.width = 220
 
-    #BadApple.convertir_audio()
-    #BadApple.obtener_frames()
-    #BadApple.obtener_ascii()
-    #BadApple.recuperar_txt()
-    
-    #BadApple.player()
+    # BadApple.convertir_audio()
+    # BadApple.obtener_frames()
+    # BadApple.obtener_ascii()
+    # BadApple.recuperar_txt()
+
+    # BadApple.player()
