@@ -105,10 +105,10 @@ class AsciiPlayer:
                 frame = frame.convert('L')
                 pixel_data = frame.getdata()
 
-                new_pixel = ''.join(ASCII_CHARS[pixel//25]for pixel in pixel_data)
+                new_pixel = ''.join(ASCII_CHARS[pixel//25] for pixel in pixel_data)
 
                 count_pixels = len(new_pixel)
-                img_ascii = [new_pixel[index: index + self._width]for index in range(0, count_pixels, self._width)]
+                img_ascii = [new_pixel[index: index + self._width] for index in range(0, count_pixels, self._width)]
                 img_ascii = '\n'.join(img_ascii)
 
                 self._ascii_frames.append(img_ascii)
@@ -123,8 +123,7 @@ class AsciiPlayer:
                 progreso.update(i)
 
             except Exception as e:
-                sys.stdout.write(
-                    f'Ocurrio un error al formar la imagen ASCII: {e}')
+                sys.stdout.write(f'Ocurrio un error al formar la imagen ASCII: {e}')
         progreso.finish()
 
     def recuperar_txt(self) -> None:
