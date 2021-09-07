@@ -1,6 +1,6 @@
 import moviepy.editor as mp
 import sys
-from os import name, system, path
+from os import name, system
 import cv2 as cv
 from PIL import Image
 import progressbar
@@ -31,17 +31,21 @@ class AsciiPlayer:
             return False
 
     def convertir_audio(self) -> None:
-        existe = self.verificar_archivos('./files/bad_apple.mp3')
-        if existe:
+        if self.verificar_archivos('./files/bad_apple.mp3'):
             sys.stdout.write('El archivo de audio ya existe')
         else:
             audio = mp.VideoFileClip(self._path)
             audio.audio.write_audiofile('./files/bad_apple.mp3')
 
     def contar_frames(self) -> int:
-        capturas = cv.VideoCapture(self._path)
-        nFrames = int(capturas.get(cv.CAP_PROP_FRAME_COUNT))
+        video = cv.VideoCapture(self._path)
+        nFrames = int(video.get(cv.CAP_PROP_FRAME_COUNT))
         return nFrames
+    
+    def obtener_fps(self) -> float:
+        video = cv.VideoCapture(self._path)
+        fps = float(video.get(cv.CAP_PROP_FPS))
+        return fps
 
     def obtener_frames(self) -> None:
         capturas = cv.VideoCapture(self._path)
@@ -62,8 +66,9 @@ class AsciiPlayer:
         progreso.finish()
         capturas.release()
 
-    def obtener_ascii(self):
-        self.verificar_archivos('./files/frames.txt')
+    def obtener_ascii(self) -> None:
+        if self.verificar_archivos('./files/frames.txt'):
+            return
         ASCII_CHARS = [' ', ':', '!', '*', '%', '$', 'S', 'O', '&', '#', '@']
 
         for i in range(self.contar_frames()):
@@ -92,7 +97,7 @@ class AsciiPlayer:
             except Exception as e:
                 sys.stdout.write(f'Ocurrio un error al formar la imagen ASCII: {e}')
 
-    def recuperar_txt(self):
+    def recuperar_txt(self) -> None:
         self._ascii_frames = [[]*k for k in range(self.contar_frames())]
         try:
             with open('./files/frames.txt', 'r') as frames:
@@ -102,19 +107,19 @@ class AsciiPlayer:
         except Exception as e:
             sys.stdout.write(f'Ocurrio un error al abrir el archivo: {e}')
 
-    def reproducir_cancion(self):
+    def reproducir_cancion(self) -> None:
         mixer.init()
         mixer.music.load("./files/bad_apple.mp3")
         mixer.music.play()
 
-    def reproducir_frames(self):
+    def reproducir_frames(self) -> None:
         system('mode %s, %s'%(self._width, self._height))
-        timer = fpstimer.FPSTimer(30)
+        timer = fpstimer.FPSTimer(self.obtener_fps())
         for i in range(self.contar_frames()):
             sys.stdout.write(self._ascii_frames[i])
             timer.sleep()
 
-    def player(self):
+    def player(self) -> None:
         audio = Thread(target=self.reproducir_cancion())
         txt = Thread(target=self.reproducir_frames())
 
@@ -132,8 +137,8 @@ if __name__ == '__main__':
     #BadApple.reproducir_cancion()
     BadApple.convertir_audio()
     #BadApple.obtener_frames()
-    #BadApple.obtener_ascii()
+    BadApple.obtener_ascii()
     BadApple.recuperar_txt()
-    #BadApple.reproducir_frames()
+    BadApple.reproducir_frames()
     
-    BadApple.player()
+    #BadApple.player()
