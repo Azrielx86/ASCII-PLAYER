@@ -104,9 +104,12 @@ class AsciiPlayer:
                 sys.stdout.write(f'Ocurrio un error al formar la imagen ASCII: {e}')
 
     def guardar_ascii_temporal(self):
+        self._ascii_frames = [[]*k for k in range(self.contar_frames())]
         try:
             with open('./files/frames.txt', 'r') as frames:
-                self._ascii_frames.append()
+                for i in range(self.contar_frames()):
+                    tmp = ''.join(frames.readline() for i in range(60))
+                    self._ascii_frames[i] = tmp
         except Exception as e:
             sys.stdout.write(f'Ocurrio un error al abrir el archivo: {e}')
 
@@ -128,8 +131,9 @@ if __name__ == '__main__':
     ruta = str('./bad_apple.mp4')
     BadApple = AsciiPlayer(ruta)
 
-    BadApple.convertir_audio()
-    BadApple.obtener_frames()
-    BadApple.obtener_ascii()
+    #BadApple.convertir_audio()
+    #BadApple.obtener_frames()
+    #BadApple.obtener_ascii()
+    BadApple.guardar_ascii_temporal()
     BadApple.reproducir_frames()
     
