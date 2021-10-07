@@ -1,0 +1,6 @@
+PIL
+pygame
+moviepy
+cv2
+progressbar
+fpstimer
