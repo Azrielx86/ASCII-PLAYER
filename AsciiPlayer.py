@@ -1,4 +1,5 @@
 from os import name, system, path, remove, rmdir
+import os
 from PIL import Image
 from pygame import mixer
 from threading import Thread
@@ -49,12 +50,15 @@ class AsciiPlayer:
             return False
 
     def getAudioFile(self) -> None:
-        if self.verifyFiles(path.join("files", "audio.wav")):
-            sys.stdout.write('El archivo de audio ya existe')
-        else:
-            audio = mp.VideoFileClip(self._path)
-            audio.audio.write_audiofile(
-                path.join("files", "audio.wav"), bitrate='320k')
+        try:
+            if self.verifyFiles(path.join("files", "audio.wav")):
+                sys.stdout.write('El archivo de audio ya existe')
+            else:
+                audio = mp.VideoFileClip(self._path)
+                audio.audio.write_audiofile(
+                    path.join("files", "audio.wav"), bitrate='320k')
+        except Exception as e:
+            print(f'Error while getting audio file')
 
     def getFrameCount(self) -> int:
         video = cv.VideoCapture(self._path)
@@ -129,7 +133,7 @@ class AsciiPlayer:
         try:
             with open(path.join("files", "frames.txt"), 'r') as frames:
                 for i in range(self.getFrameCount()):
-                    tmp = ''.join(frames.readline() for i in range(60))
+                    tmp = ''.join(frames.readline() for i in range(self._height))
                     self._ascii_frames[i] = tmp
         except Exception as e:
             sys.stdout.write(f'Ocurrio un error al abrir el archivo: {e}')
@@ -161,8 +165,10 @@ class AsciiPlayer:
 
     def playFrames(self) -> None:
         system('mode %s, %s' % (self._width, self._height))
+        system('cls' if name == 'nt' else 'clear')
         timer = fpstimer.FPSTimer(self.getFPS())
         for i in range(self.getFrameCount()):
+            print("\033[F"*(self._height+1))
             sys.stdout.write(self._ascii_frames[i])
             timer.sleep()
 
@@ -250,14 +256,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    #ruta = str('./bad_apple.mp4')
-    #ruta = str('./lagtrain.mp4')
-    #BadApple = AsciiPlayer(ruta)
-    #BadApple.width = 220
-
-    # BadApple.convertir_audio()
-    # BadApple.obtener_frames()
-    # BadApple.obtener_ascii()
-    # BadApple.recuperar_txt()
-
-    # BadApple.player()
