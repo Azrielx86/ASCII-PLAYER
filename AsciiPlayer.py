@@ -1,5 +1,4 @@
 from os import name, system, path, remove, rmdir
-import os
 from PIL import Image
 from pygame import mixer
 from threading import Thread
@@ -113,8 +112,6 @@ class AsciiPlayer:
                 img_ascii = [new_pixel[index: index + self._width] for index in range(0, count_pixels, self._width)]
                 img_ascii = '\n'.join(img_ascii)
 
-                # self._ascii_frames.append(img_ascii)
-
                 try:
                     with open(path.join("files", "frames.txt"), 'a') as txt:
                         txt.write(img_ascii)
@@ -181,7 +178,6 @@ class AsciiPlayer:
 
         txt.join()
         audio.join()
-
 
 def main():
     system('cls' if name == 'nt' else 'clear')
