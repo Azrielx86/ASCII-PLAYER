@@ -2,7 +2,7 @@
 
 This project takes a video file (it should be like Bad Apple animation), convert all frames to ASCII art, and play it in console.
 
-I made it only for "Bad Apple!", but it works with other videos (I tried it with Lagtrain video).
+I made it for "Bad Apple!", but it works with other videos.
 
 ![Bad Apple](./BadAppleGif.gif)
 
