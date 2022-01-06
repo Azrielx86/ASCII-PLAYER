@@ -1,4 +1,4 @@
-from os import name, system, path, remove, rmdir
+from os import name, system, path, remove, rmdir, makedirs
 from PIL import Image
 from pygame import mixer
 from threading import Thread
@@ -11,7 +11,6 @@ import sys
 
 class AsciiPlayer:
     def __init__(self, path) -> None:
-        self.makeDir()
         self._path = path
         self._ascii_frames = []
         self._height = 60
@@ -33,17 +32,15 @@ class AsciiPlayer:
     def width(self, width):
         self._width = width
 
-    @classmethod
-    def makeDir(cls):
-        if name == 'nt':
-            system('mkdir ' + path.join('files', 'output'))
-        else:
-            system('mkdir files')
-            system('mkdir files/output')
-
-    def verifyFiles(self, ruta: str) -> bool:
+    def makeDir(self) -> None:
         try:
-            with open(ruta, 'r'):
+            makedirs(path.join('files', 'output'))
+        except Exception:
+            pass
+
+    def verifyFiles(self, path: str) -> bool:
+        try:
+            with open(path, 'r'):
                 return True
         except Exception:
             return False
@@ -51,13 +48,12 @@ class AsciiPlayer:
     def getAudioFile(self) -> None:
         try:
             if self.verifyFiles(path.join("files", "audio.wav")):
-                sys.stdout.write('El archivo de audio ya existe')
+                sys.stdout.write('Audio file already exists.\n')
             else:
                 audio = mp.VideoFileClip(self._path)
-                audio.audio.write_audiofile(
-                    path.join("files", "audio.wav"), bitrate='320k')
+                audio.audio.write_audiofile(path.join("files", "audio.wav"), bitrate='320k')
         except Exception as e:
-            print(f'Error while getting audio file')
+            sys.stdout.write(f'Error while getting audio file\n')
 
     def getFrameCount(self) -> int:
         video = cv.VideoCapture(self._path)
@@ -70,37 +66,36 @@ class AsciiPlayer:
         return fps
 
     def getFrames(self) -> None:
-        capturas = cv.VideoCapture(self._path)
+        frames = cv.VideoCapture(self._path)
         nFrame = 0
-        sys.stdout.write(f'Extrayendo los frames de: {self._path}\n')
-        progreso = progressbar.ProgressBar(max_value=self.getFrameCount())
-        progreso.start()
+        sys.stdout.write(f'Extracting frames from: {self._path}\n')
+        progress = progressbar.ProgressBar(max_value=self.getFrameCount())
+        progress.start()
         while(True):
-            success, frame = capturas.read()
+            success, frame = frames.read()
             if success:
                 if self.verifyFiles(path.join('files', 'output', 'frame_%s.jpg' % nFrame)) == False:
-                    cv.imwrite(path.join('files', 'output',
-                               'frame_%s.jpg' % nFrame), frame)
+                    cv.imwrite(path.join('files', 'output', 'frame_%s.jpg' % nFrame), frame)
             else:
                 break
             nFrame += 1
 
-            progreso.update(nFrame)
+            progress.update(nFrame)
 
-        progreso.finish()
-        capturas.release()
+        progress.finish()
+        frames.release()
 
     def getASCII(self) -> None:
         if self.verifyFiles(path.join('files', 'frames.txt')):
             return
         ASCII_CHARS = [' ', ':', '!', '*', '%', '$', 'S', 'O', '&', '#', '@']
 
-        sys.stdout.write(f'Escribiendo el archivo ASCII\n')
-        progreso = progressbar.ProgressBar(max_value=self.getFrameCount())
-        progreso.start()
+        sys.stdout.write(f'Writing ASCII file...\n')
+        progress = progressbar.ProgressBar(max_value=self.getFrameCount())
+        progress.start()
         for i in range(self.getFrameCount()):
             try:
-                frame = Image.open('./files/output/frame_%s.jpg' % i)
+                frame = Image.open(path.join('files', 'output', 'frame_%s.jpg' % i))
                 frame = frame.resize(size=[self._width, self._height])
 
                 frame = frame.convert('L')
@@ -117,15 +112,16 @@ class AsciiPlayer:
                         txt.write(img_ascii)
                         txt.write('\n')
                 except Exception as e:
-                    sys.stdout.write(f'Ocurrio un error al abrir el archivo: {e}')
+                    sys.stdout.write(f'An error occurred while the opening file: {e}\n')
 
-                progreso.update(i)
+                progress.update(i)
 
             except Exception as e:
-                sys.stdout.write(f'Ocurrio un error al formar la imagen ASCII: {e}')
-        progreso.finish()
+                sys.stdout.write(f'An error occurred while getting ASCII image: {e}\n')
+        progress.finish()
 
     def getTxtFile(self) -> None:
+        self.getSize()
         self._ascii_frames = [[]*k for k in range(self.getFrameCount())]
         try:
             with open(path.join("files", "frames.txt"), 'r') as frames:
@@ -133,26 +129,55 @@ class AsciiPlayer:
                     tmp = ''.join(frames.readline() for i in range(self._height))
                     self._ascii_frames[i] = tmp
         except Exception as e:
-            sys.stdout.write(f'Ocurrio un error al abrir el archivo: {e}')
+            sys.stdout.write(f'An error occurred while opening the file: {e}\n')
 
     def prepareFiles(self):
+        if not self.verifyFiles(path.join("files", "size.txt")):
+            self.saveSize()
+        self.makeDir()
         self.getAudioFile()
+        self.getSize()
         if self.verifyFiles(path.join("files", "frames.txt")):
             self.getTxtFile()
         else:
             self.getFrames()
             self.getASCII()
+            self.saveSize()
 
-    def deleteFiles(self):
+    def saveSize(self) -> None:
+        try:
+            with open(path.join('files', 'size.txt'), 'w') as sizeFile:
+                sizeFile.write(f'height={self.height}\n')
+                sizeFile.write(f'width={self.width}\n')
+        except Exception as e:
+            sys.stdout.write(f'An error occurred while opening the file: {e}\n')
+
+    def getSize(self) -> None:
+        try:
+            with open(path.join('files', 'size.txt'), 'r') as sizeFile:
+                self.height = int(sizeFile.readline().strip('height='))
+                self.width = int(sizeFile.readline().strip('width='))
+        except Exception as e:
+            sys.stdout.write(f'An error occurred while getting the size: {e}\n')
+
+    def deleteFiles(self) -> None:
         try:
             remove(path.join('files', 'audio.wav'))
             remove(path.join('files', 'frames.txt'))
+            remove(path.join('files', 'size.txt'))
             for i in range(self.getFrameCount()):
                 remove(path.join('files', 'output', 'frame_%s.jpg' % (i)))
             rmdir(path.join('files', 'output'))
             rmdir('files')
         except Exception as e:
-            sys.stdout.write(f'Error al eliminar los archivos: {e}')
+            sys.stdout.write(f'An error occurred while deleting the files: {e}\n')
+
+    def reloadFiles(self) -> None:
+        try:
+            remove(path.join('files', 'size.txt'))
+            remove(path.join('files', 'frames.txt'))
+        except Exception as e:
+            sys.stdout.write(f'An error occurred while deleting the files: {e}\n')
 
     def playSong(self) -> None:
         mixer.pre_init(frequency=44100, size=-16, channels=2, buffer=2048)
@@ -161,12 +186,14 @@ class AsciiPlayer:
         mixer.music.play()
 
     def playFrames(self) -> None:
-        system('mode %s, %s' % (self._width, self._height))
+        # On the new versions of Windows Terminal (W11), it maybe don't works.
+        if name == 'nt':
+            system('mode %s, %s' % (self._width, self._height))
         system('cls' if name == 'nt' else 'clear')
         timer = fpstimer.FPSTimer(self.getFPS())
         for i in range(self.getFrameCount()):
-            print("\033[F"*(self._height+1))
-            sys.stdout.write(self._ascii_frames[i])
+            sys.stdout.write("\033[H")
+            sys.stdout.write(self._ascii_frames[i][:-1])
             timer.sleep()
 
     def player(self) -> None:
@@ -179,12 +206,11 @@ class AsciiPlayer:
         txt.join()
         audio.join()
 
-def main():
+if __name__ == '__main__':
     system('cls' if name == 'nt' else 'clear')
     while True:
         print('ASCII Video Player'.center(50, '='))
-        ruta = input(
-            "Ingresa la ruta del archivo (Preferiblemente en root):").strip()
+        ruta = input("File Name (Enter for 'bad_apple.mp4'):").strip()
         if ruta == '':
             ruta = 'bad_apple.mp4'
         try:
@@ -192,63 +218,46 @@ def main():
                 video = AsciiPlayer(ruta)
                 break
         except Exception as e:
-            print(f'Ocurrio un error: {e}')
+            print(f'An error occurred: {e}')
             input()
 
     while True:
         system('cls' if name == 'nt' else 'clear')
-        print('ASCII Video Player'.center(50, '='))
-        print(f'Archivo abierto: {ruta}')
-        print('[1] Preparar archivos')
-        print('[2] Reproducir')
-        print('[3] Eliminar archivos')
-        print('[4] Opciones avanzadas')
-        print('[5] Salir')
-        opcion = input('>')
+        print(' ASCII Video Player '.center(50, '='))
+        print(f'File: {ruta}')
+        print('[1] Play')
+        print('[2] Delete Files')
+        print('[3] Change Size')
+        print('[4] Exit')
+        opc = input('> ')
+        print("\033[F", end="")
 
-        if opcion == '1':
-            print('Ingresa la ruta del archivo: ')
+        if opc == '1':
             video.prepareFiles()
-
-        elif opcion == '2':
             if video.verifyFiles(path.join('files', 'frames.txt')) and video.verifyFiles(path.join('files', 'audio.wav')):
                 video.getTxtFile()
                 video.player()
 
-        elif opcion == '3':
-            print('¿Eliminar archivos? [y/n]')
-            opcion = input()
-            if opcion == 'y' or opcion == 'Y':
+        elif opc == '2':
+            print('Delete files? [y/n]', end=' ')
+            opc = input()
+            if opc == 'y' or opc == 'Y':
                 video.deleteFiles()
-            elif opcion == 'n' or opcion == 'N':
+            elif opc == 'n' or opc == 'N':
                 pass
             else:
-                print('No valido')
+                print('Not Valid')
 
-        elif opcion == '4':
-            print('Opciones avanzadas')
-            print(f'[1] Cambiar Alto (Por defecto: {video.height})')
-            print(f'[2] Cambiar Ancho (Por defectoL {video.width})')
-            print('[3] Regresar')
-            opcion2 = input()
-            if opcion2 == '1':
-                video.height = int(input('Nuevo alto: '))
-            elif opcion2 == '2':
-                video.width = int(input('Nuevo ancho: '))
-            elif opcion2 == '3':
-                pass
-            else:
-                print('Opcion invalida')
-            print('Se removera el archivo de texto, vuelve a preparar los archivos')
-            try:
-                remove(path.join('files', 'frames.txt'))
-            except Exception as e:
-                print(f'Error: {e}')
-        elif opcion == '5':
+        elif opc == '3':
+            print('Default size: 60x170')
+            video.height = int(input('New height: '))
+            video.width = int(input('New width: '))
+            print(f'Reloading files...')
+            video.reloadFiles()
+            video.prepareFiles()
+
+        elif opc == '4':
             break
+
         else:
             print('Opcion invalida!')
-
-
-if __name__ == '__main__':
-    main()
