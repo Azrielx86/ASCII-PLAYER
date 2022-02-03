@@ -1,6 +1,6 @@
-PIL
+pillow
 pygame
 moviepy
-cv2
+opencv-python
 progressbar
 fpstimer

@@ -8,10 +8,10 @@ I made it for "Bad Apple!", but it works with other videos.
 
 ## Dependences
 
-    PIL
+    pillow
     pygame
     moviepy
-    cv2
+    opencv-python
     progressbar
     fpstimer
 
