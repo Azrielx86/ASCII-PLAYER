@@ -88,7 +88,7 @@ class AsciiPlayer:
     def getASCII(self) -> None:
         if self.verifyFiles(path.join('files', 'frames.txt')):
             return
-        ASCII_CHARS = [' ', ':', '!', '*', '%', '$', 'S', 'O', '&', '#', '@']
+        ASCII_CHARS = [' ', '.', '"', ':', '!', '~', '+', '*', '#', '$', '@']
 
         sys.stdout.write(f'Writing ASCII file...\n')
         progress = progressbar.ProgressBar(max_value=self.getFrameCount())
@@ -260,4 +260,4 @@ if __name__ == '__main__':
             break
 
         else:
-            print('Opcion invalida!')
+            print('Invalid Option!')
