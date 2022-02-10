@@ -2,6 +2,8 @@ from os import name, system, path, remove, rmdir, makedirs
 from PIL import Image
 from pygame import mixer
 from threading import Thread
+from curses import endwin, wrapper
+import curses
 import moviepy.editor as mp
 import cv2 as cv
 import progressbar
@@ -206,6 +208,20 @@ class AsciiPlayer:
         txt.join()
         audio.join()
 
+    def getFromCurses(self) -> None:
+        def screen(stdscr):
+            self.height = curses.LINES
+            self.width = curses.COLS
+            endwin()
+
+        try:
+            wrapper(screen)
+            print(f'New height: {self.height}')
+            print(f'New width: {self.width}')
+        except Exception as e:
+            print(f'Error on curses: {e}')
+
+
 if __name__ == '__main__':
     system('cls' if name == 'nt' else 'clear')
     while True:
@@ -228,7 +244,8 @@ if __name__ == '__main__':
         print('[1] Play')
         print('[2] Delete Files')
         print('[3] Change Size')
-        print('[4] Exit')
+        print('[4] Get terminal size')
+        print('[5] Exit')
         opc = input('> ')
         print("\033[F", end="")
 
@@ -257,6 +274,11 @@ if __name__ == '__main__':
             video.prepareFiles()
 
         elif opc == '4':
+            # break
+            video.getFromCurses()
+            video.reloadFiles()
+            video.prepareFiles()
+        elif opc == '5':
             break
 
         else:
