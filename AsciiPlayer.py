@@ -1,9 +1,7 @@
-from os import name, system, path, remove, rmdir, makedirs
+from os import name, system, path, remove, rmdir, makedirs, get_terminal_size
 from PIL import Image
 from pygame import mixer
 from threading import Thread
-from curses import endwin, wrapper
-import curses
 import moviepy.editor as mp
 import cv2 as cv
 import progressbar
@@ -76,8 +74,8 @@ class AsciiPlayer:
         while(True):
             success, frame = frames.read()
             if success:
-                if self.verifyFiles(path.join('files', 'output', 'frame_%s.jpg' % nFrame)) == False:
-                    cv.imwrite(path.join('files', 'output', 'frame_%s.jpg' % nFrame), frame)
+                if not self.verifyFiles(path.join('files', 'output', 'frame_%s.jpg' % nFrame)):
+                    cv.imwrite(path.join('files', 'output','frame_%s.jpg' % nFrame), frame)
             else:
                 break
             nFrame += 1
@@ -151,16 +149,16 @@ class AsciiPlayer:
             with open(path.join('files', 'size.txt'), 'w') as sizeFile:
                 sizeFile.write(f'height={self.height}\n')
                 sizeFile.write(f'width={self.width}\n')
-        except Exception as e:
-            sys.stdout.write(f'An error occurred while opening the file: {e}\n')
+        except Exception:
+            pass
 
     def getSize(self) -> None:
         try:
             with open(path.join('files', 'size.txt'), 'r') as sizeFile:
                 self.height = int(sizeFile.readline().strip('height='))
                 self.width = int(sizeFile.readline().strip('width='))
-        except Exception as e:
-            sys.stdout.write(f'An error occurred while getting the size: {e}\n')
+        except Exception:
+            pass
 
     def deleteFiles(self) -> None:
         try:
@@ -172,14 +170,15 @@ class AsciiPlayer:
             rmdir(path.join('files', 'output'))
             rmdir('files')
         except Exception as e:
-            sys.stdout.write(f'An error occurred while deleting the files: {e}\n')
+            sys.stdout.write(
+                f'An error occurred while deleting the files: {e}\n')
 
     def reloadFiles(self) -> None:
         try:
             remove(path.join('files', 'size.txt'))
             remove(path.join('files', 'frames.txt'))
         except Exception as e:
-            sys.stdout.write(f'An error occurred while deleting the files: {e}\n')
+            pass
 
     def playSong(self) -> None:
         mixer.pre_init(frequency=44100, size=-16, channels=2, buffer=2048)
@@ -188,9 +187,6 @@ class AsciiPlayer:
         mixer.music.play()
 
     def playFrames(self) -> None:
-        # On the new versions of Windows Terminal (W11), it maybe don't works.
-        if name == 'nt':
-            system('mode %s, %s' % (self._width, self._height))
         system('cls' if name == 'nt' else 'clear')
         timer = fpstimer.FPSTimer(self.getFPS())
         for i in range(self.getFrameCount()):
@@ -208,18 +204,9 @@ class AsciiPlayer:
         txt.join()
         audio.join()
 
-    def getFromCurses(self) -> None:
-        def screen(stdscr):
-            self.height = curses.LINES
-            self.width = curses.COLS
-            endwin()
-
-        try:
-            wrapper(screen)
-            print(f'New height: {self.height}')
-            print(f'New width: {self.width}')
-        except Exception as e:
-            print(f'Error on curses: {e}')
+    def getScreenSize(self) -> None:
+        self._height = get_terminal_size().lines
+        self._width = get_terminal_size().columns
 
 
 if __name__ == '__main__':
@@ -242,9 +229,9 @@ if __name__ == '__main__':
         print(' ASCII Video Player '.center(50, '='))
         print(f'File: {ruta}')
         print('[1] Play')
-        print('[2] Delete Files')
-        print('[3] Change Size')
-        print('[4] Get terminal size')
+        print(f'[2] Use terminal size ({get_terminal_size().lines}x{get_terminal_size().columns})')
+        print('[3] Use custom size')
+        print('[4] Delete Files')
         print('[5] Exit')
         opc = input('> ')
         print("\033[F", end="")
@@ -256,14 +243,9 @@ if __name__ == '__main__':
                 video.player()
 
         elif opc == '2':
-            print('Delete files? [y/n]', end=' ')
-            opc = input()
-            if opc == 'y' or opc == 'Y':
-                video.deleteFiles()
-            elif opc == 'n' or opc == 'N':
-                pass
-            else:
-                print('Not Valid')
+            video.getScreenSize()
+            video.reloadFiles()
+            video.prepareFiles()
 
         elif opc == '3':
             print('Default size: 60x170')
@@ -274,10 +256,15 @@ if __name__ == '__main__':
             video.prepareFiles()
 
         elif opc == '4':
-            # break
-            video.getFromCurses()
-            video.reloadFiles()
-            video.prepareFiles()
+            print('Delete files? [y/n]', end=' ')
+            opc = input()
+            if opc == 'y' or opc == 'Y':
+                video.deleteFiles()
+            elif opc == 'n' or opc == 'N':
+                pass
+            else:
+                print('Not Valid')
+
         elif opc == '5':
             break
 
