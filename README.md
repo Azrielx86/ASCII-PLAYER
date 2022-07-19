@@ -12,7 +12,6 @@ I made it for "Bad Apple!", but it works with other videos.
     pygame
     moviepy
     opencv-python
-    progressbar
     fpstimer
 
 ## Use

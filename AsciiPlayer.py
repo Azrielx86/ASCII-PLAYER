@@ -4,10 +4,10 @@ from pygame import mixer
 from threading import Thread
 import moviepy.editor as mp
 import cv2 as cv
-import progressbar
 import fpstimer
 import sys
 
+progress_format = '\u001b[1000D{:.2f}% ({} of {})'
 
 class AsciiPlayer:
     def __init__(self, path) -> None:
@@ -69,8 +69,7 @@ class AsciiPlayer:
         frames = cv.VideoCapture(self._path)
         nFrame = 0
         sys.stdout.write(f'Extracting frames from: {self._path}\n')
-        progress = progressbar.ProgressBar(max_value=self.getFrameCount())
-        progress.start()
+        end = self.getFrameCount()
         while(True):
             success, frame = frames.read()
             if success:
@@ -80,9 +79,9 @@ class AsciiPlayer:
                 break
             nFrame += 1
 
-            progress.update(nFrame)
-
-        progress.finish()
+            sys.stdout.write(progress_format.format(nFrame * 100 / end, nFrame, end))
+            
+        sys.stdout.write("\u001b[1000D")
         frames.release()
 
     def getASCII(self) -> None:
@@ -91,8 +90,7 @@ class AsciiPlayer:
         ASCII_CHARS = [' ', '.', '"', ':', '!', '~', '+', '*', '#', '$', '@']
 
         sys.stdout.write(f'Writing ASCII file...\n')
-        progress = progressbar.ProgressBar(max_value=self.getFrameCount())
-        progress.start()
+        end = self.getFrameCount()
         for i in range(self.getFrameCount()):
             try:
                 frame = Image.open(path.join('files', 'output', 'frame_%s.jpg' % i))
@@ -114,11 +112,11 @@ class AsciiPlayer:
                 except Exception as e:
                     sys.stdout.write(f'An error occurred while the opening file: {e}\n')
 
-                progress.update(i)
+                sys.stdout.write(progress_format.format(i * 100 / end, i, end))
 
             except Exception as e:
                 sys.stdout.write(f'An error occurred while getting ASCII image: {e}\n')
-        progress.finish()
+        sys.stdout.write("\u001b[1000D")
 
     def getTxtFile(self) -> None:
         self.getSize()

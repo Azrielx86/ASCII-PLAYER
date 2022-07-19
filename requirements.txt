@@ -2,5 +2,4 @@ pillow
 pygame
 moviepy
 opencv-python
-progressbar
 fpstimer
