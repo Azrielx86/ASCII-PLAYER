@@ -7,7 +7,7 @@ import cv2 as cv
 import fpstimer
 import sys
 
-progress_format = '\u001b[1000D{:.2f}% ({} of {})'
+progress_format = '>{:.2f}% ({} of {})\u001b[1000D'
 
 class AsciiPlayer:
     def __init__(self, path) -> None:
@@ -81,7 +81,7 @@ class AsciiPlayer:
 
             sys.stdout.write(progress_format.format(nFrame * 100 / end, nFrame, end))
             
-        sys.stdout.write("\u001b[1000D")
+        sys.stdout.write("\u001b[2K")
         frames.release()
 
     def getASCII(self) -> None:
@@ -116,7 +116,7 @@ class AsciiPlayer:
 
             except Exception as e:
                 sys.stdout.write(f'An error occurred while getting ASCII image: {e}\n')
-        sys.stdout.write("\u001b[1000D")
+        sys.stdout.write("\u001b[2K")
 
     def getTxtFile(self) -> None:
         self.getSize()
@@ -130,6 +130,9 @@ class AsciiPlayer:
             sys.stdout.write(f'An error occurred while opening the file: {e}\n')
 
     def prepareFiles(self):
+        sys.stdout.write("\033[?25l")
+        sys.stdout.flush()
+
         if not self.verifyFiles(path.join("files", "size.txt")):
             self.saveSize()
         self.makeDir()
@@ -141,6 +144,9 @@ class AsciiPlayer:
             self.getFrames()
             self.getASCII()
             self.saveSize()
+
+        sys.stdout.write("\033[?25h")
+        sys.stdout.flush()
 
     def saveSize(self) -> None:
         try:
@@ -209,6 +215,7 @@ class AsciiPlayer:
 
 if __name__ == '__main__':
     system('cls' if name == 'nt' else 'clear')
+
     while True:
         print('ASCII Video Player'.center(50, '='))
         ruta = input("File Name (Enter for 'bad_apple.mp4'):").strip()
