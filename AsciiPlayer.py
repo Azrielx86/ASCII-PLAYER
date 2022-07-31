@@ -1,13 +1,16 @@
 from os import name, system, path, remove, rmdir, makedirs, get_terminal_size
+from multiprocessing import cpu_count
+from concurrent.futures import ThreadPoolExecutor
 from PIL import Image
 from pygame import mixer
 from threading import Thread
+from tqdm import tqdm
 import moviepy.editor as mp
 import cv2 as cv
 import fpstimer
+import math
 import sys
 
-progress_format = '>{:.2f}% ({} of {})\u001b[1000D'
 
 class AsciiPlayer:
     def __init__(self, path) -> None:
@@ -57,32 +60,49 @@ class AsciiPlayer:
 
     def getFrameCount(self) -> int:
         video = cv.VideoCapture(self._path)
-        nFrames = int(video.get(cv.CAP_PROP_FRAME_COUNT))
-        return nFrames
+        return int(video.get(cv.CAP_PROP_FRAME_COUNT))
 
     def getFPS(self) -> float:
         video = cv.VideoCapture(self._path)
-        fps = float(video.get(cv.CAP_PROP_FPS))
-        return fps
+        return float(video.get(cv.CAP_PROP_FPS))
 
     def getFrames(self) -> None:
-        frames = cv.VideoCapture(self._path)
-        nFrame = 0
+        cores = cpu_count()
+        pool = ThreadPoolExecutor(cores)
+        subrange = math.ceil(self.getFrameCount() / cores)
+
         sys.stdout.write(f'Extracting frames from: {self._path}\n')
-        end = self.getFrameCount()
-        while(True):
+        sys.stdout.write(f'Using {cores} cores.\n')
+
+        for i in range(cores):
+            pool.submit(self.getFrameRange, subrange * i, subrange * (i + 1), i)
+
+        pool.shutdown(wait=True)
+
+        for i in range(self.getFrameCount()):
+            if not self.verifyFiles(path.join('files', 'output', 'frame_%s.jpg' % i)):
+                self.getFrameRange(i - 1, i + 1, 0)
+
+        print("\033[K\033[F", end="\n")
+
+    def getFrameRange(self, first: int, final: int, barPos: int) -> None:
+        frames = cv.VideoCapture(self._path)
+
+        for nFrame in tqdm(range(first, final), position=barPos, leave=False):
+            if self.verifyFiles(path.join('files', 'output', 'frame_%s.jpg' % nFrame)):
+                continue
+
+            frames.set(1, nFrame)
             success, frame = frames.read()
+
             if success:
                 if not self.verifyFiles(path.join('files', 'output', 'frame_%s.jpg' % nFrame)):
-                    cv.imwrite(path.join('files', 'output','frame_%s.jpg' % nFrame), frame)
+                    cv.imwrite(path.join('files', 'output', 'frame_%s.jpg' % nFrame), frame)
             else:
                 break
-            nFrame += 1
 
-            sys.stdout.write(progress_format.format(nFrame * 100 / end, nFrame, end))
-            
-        sys.stdout.write("\u001b[2K")
         frames.release()
+
 
     def getASCII(self) -> None:
         if self.verifyFiles(path.join('files', 'frames.txt')):
@@ -90,8 +110,7 @@ class AsciiPlayer:
         ASCII_CHARS = [' ', '.', '"', ':', '!', '~', '+', '*', '#', '$', '@']
 
         sys.stdout.write(f'Writing ASCII file...\n')
-        end = self.getFrameCount()
-        for i in range(self.getFrameCount()):
+        for i in tqdm(range(self.getFrameCount())):
             try:
                 frame = Image.open(path.join('files', 'output', 'frame_%s.jpg' % i))
                 frame = frame.resize(size=[self._width, self._height])
@@ -112,11 +131,8 @@ class AsciiPlayer:
                 except Exception as e:
                     sys.stdout.write(f'An error occurred while the opening file: {e}\n')
 
-                sys.stdout.write(progress_format.format(i * 100 / end, i, end))
-
             except Exception as e:
                 sys.stdout.write(f'An error occurred while getting ASCII image: {e}\n')
-        sys.stdout.write("\u001b[2K")
 
     def getTxtFile(self) -> None:
         self.getSize()
@@ -124,7 +140,7 @@ class AsciiPlayer:
         try:
             with open(path.join("files", "frames.txt"), 'r') as frames:
                 for i in range(self.getFrameCount()):
-                    tmp = ''.join(frames.readline() for i in range(self._height))
+                    tmp = ''.join(frames.readline() for _ in range(self._height))
                     self._ascii_frames[i] = tmp
         except Exception as e:
             sys.stdout.write(f'An error occurred while opening the file: {e}\n')
@@ -217,13 +233,13 @@ if __name__ == '__main__':
     system('cls' if name == 'nt' else 'clear')
 
     while True:
-        print('ASCII Video Player'.center(50, '='))
-        ruta = input("File Name (Enter for 'bad_apple.mp4'):").strip()
-        if ruta == '':
-            ruta = 'bad_apple.mp4'
+        print(' ASCII Video Player '.center(get_terminal_size().columns, '='))
+        filePath = input("File Name (Enter for 'bad_apple.mp4'):").strip()
+        if filePath == '':
+            filePath = 'bad_apple.mp4'
         try:
-            with open(ruta, 'r'):
-                video = AsciiPlayer(ruta)
+            with open(filePath, 'r'):
+                video = AsciiPlayer(filePath)
                 break
         except Exception as e:
             print(f'An error occurred: {e}')
@@ -231,15 +247,16 @@ if __name__ == '__main__':
 
     while True:
         system('cls' if name == 'nt' else 'clear')
-        print(' ASCII Video Player '.center(50, '='))
-        print(f'File: {ruta}')
+        print(' ASCII Video Player '.center(get_terminal_size().columns, '='))
+        print(f'[File: {filePath} | Frames: {video.getFrameCount()} | FPS: {video.getFPS()}]'.center(get_terminal_size().columns, ' '))
         print('[1] Play')
-        print(f'[2] Use terminal size ({get_terminal_size().lines}x{get_terminal_size().columns})')
+        print(
+            f'[2] Use terminal size ({get_terminal_size().lines}x{get_terminal_size().columns})')
         print('[3] Use custom size')
         print('[4] Delete Files')
         print('[5] Exit')
         opc = input('> ')
-        print("\033[F", end="")
+        print("\033[K\033[1F", end="")
 
         if opc == '1':
             video.prepareFiles()

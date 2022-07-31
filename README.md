@@ -14,6 +14,10 @@ I made it for "Bad Apple!", but it works with other videos.
     opencv-python
     fpstimer
 
+You can install it with: 
+
+    pip install -r requirements.txt
+
 ## Use
 
 Just start the program and put the video name file, if you use the video from the source (or use a video with filename "bad_apple.mp4" and put it on the same directory with the program), you can just press Enter and it will load to the program.
